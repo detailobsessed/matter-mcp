@@ -1,0 +1,255 @@
+[build-system]
+requires = ["uv_build"]
+build-backend = "uv_build"
+
+[project]
+name = "matter-mcp"
+description = "An MCP server for getmatter.com"
+authors = [{name = "Ismar Iljazovic", email = "ismart@gmail.com"}]
+license = "MIT"
+license-files = ["LICENSE"]
+readme = "README.md"
+requires-python = ">=3.14"
+version = "0.0.0"
+dependencies = []
+
+[project.urls]
+Homepage = "https://detailobsessed.github.io/matter-mcp"
+Documentation = "https://detailobsessed.github.io/matter-mcp"
+Changelog = "https://detailobsessed.github.io/matter-mcp/changelog"
+Repository = "https://github.com/detailobsessed/matter-mcp"
+Issues = "https://github.com/detailobsessed/matter-mcp/issues"
+Discussions = "https://github.com/detailobsessed/matter-mcp/discussions"
+Funding = "https://github.com/sponsors/ichoosetoaccept"
+
+[project.scripts]
+matter-mcp = "matter_mcp.cli:main"
+
+[dependency-groups]
+maintain = [
+    "build>=1.2",
+    "python-semantic-release>=10",
+]
+ci = [
+    "ruff>=0.14",
+    "pytest>=8",
+    "pytest-cov>=6",
+    "pytest-randomly>=3.15",
+    "ty>=0.0.14",
+    "poethepoet>=0.41",
+]
+dev = []
+local = [
+    "prek>=0.3.8",
+    "pytest-testmon>=2.2",
+]
+docs = [
+    "markdown-callouts>=0.4",
+    "markdown-exec>=1.10",
+    "mkdocs-coverage>=1.1",
+    "mkdocs-section-index>=0.3.9",
+    "mkdocstrings[python]>=0.27",
+    "zensical",
+]
+
+[tool.uv]
+default-groups = ["maintain", "ci", "dev", "docs", "local"]
+
+[tool.ruff]
+target-version = "py314"
+line-length = 140
+preview = true
+
+[tool.ruff.lint]
+select = [
+    # Core — universal baseline (ruff defaults + pycodestyle warnings)
+    "E",    # pycodestyle errors
+    "W",    # pycodestyle warnings
+    "F",    # Pyflakes
+
+    # Modern Python — enforce current idioms
+    "UP",   # pyupgrade — use modern syntax (match, type unions, etc.)
+    "I",    # isort — deterministic import ordering
+    "FA",   # flake8-future-annotations — `from __future__ import annotations`
+
+    # Code quality — catch bugs and enforce clean patterns
+    "A",    # flake8-builtins — prevent shadowing builtins (id, type, list)
+    "B",    # flake8-bugbear — common bugs and design issues
+    "SIM",  # flake8-simplify — simplifiable constructs
+    "C4",   # flake8-comprehensions — better comprehensions
+    "PIE",  # flake8-pie — misc quality improvements
+    "RET",  # flake8-return — consistent return statements
+    "RSE",  # flake8-raise — raise best practices
+    "ISC",  # flake8-implicit-str-concat — catch missing commas in collections
+    "RUF",  # Ruff-specific rules
+    "FURB", # refurb — modernise and simplify code
+    "FLY",  # flynt — prefer f-strings over .format() and %
+    "PGH",  # pygrep-hooks — catch bare `# type: ignore`, eval(), etc.
+
+    # Import hygiene
+    "ICN",  # flake8-import-conventions — enforce standard aliases (np, pd)
+    "TID",  # flake8-tidy-imports — ban relative imports, enforce absolute
+    "TC",   # flake8-type-checking — move imports behind TYPE_CHECKING
+
+    # Naming — currently disabled; enable once existing code conforms
+    # "N",  # pep8-naming — PEP 8 naming conventions
+
+    # Correctness
+    "DTZ",  # flake8-datetimez — enforce timezone-aware datetimes
+    "PTH",  # flake8-use-pathlib — prefer pathlib over os.path
+
+    # Error messages
+    "EM",   # flake8-errmsg — variables in exception constructors (better tracebacks)
+
+    # Complexity
+    "C9",   # mccabe — cyclomatic complexity (max-complexity = 10)
+
+    # Pylint — uses default thresholds; do not inflate to hide violations
+    "PLC",  # pylint conventions
+    "PLE",  # pylint errors
+    "PLR",  # pylint refactor (too-many-args, too-many-branches, etc.)
+    "PLW",  # pylint warnings
+
+    # Performance
+    "PERF", # Perflint — performance anti-patterns
+
+    # Security
+    "S",    # flake8-bandit — security issues
+
+    # Testing
+    "PT",   # flake8-pytest-style — consistent pytest idioms
+
+    # Error handling
+    "TRY",  # tryceratops — exception handling best practices
+    "LOG",  # flake8-logging — logging best practices
+
+    # Housekeeping
+    "ARG",  # flake8-unused-arguments
+    "ERA",  # eradicate — commented-out code
+    "T20",  # flake8-print — use logging instead of print()
+]
+ignore = [
+    "TRY003",  # Overly strict — forces custom exception classes for every error message
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = [
+    "S101", "S105", "S404", "S603", "S607",  # Allow assert, hardcoded secrets, and subprocess in tests
+    "T201",       # Allow print in tests
+    "PLR6301",    # Test methods don't use self (pytest classes)
+    "PLR2004",    # Magic values in assertions are fine
+    "PLC0415",    # Lazy imports in test functions are idiomatic
+    "PLC2701",    # Private name imports for testing internals
+    "ARG002",     # Unused method arguments (fixtures)
+    "DTZ005",     # Naive datetime in tests is fine
+    "PLR0904",    # Test classes naturally have many test methods
+]
+
+[tool.ruff.lint.mccabe]
+max-complexity = 10
+
+[tool.ruff.lint.pylint]
+# All values are pylint defaults — do not inflate to hide violations.
+
+[tool.ruff.lint.flake8-pytest-style]
+fixture-parentheses = false
+mark-parentheses = false
+
+[tool.ruff.lint.isort]
+known-first-party = ["matter_mcp"]
+
+[tool.ruff.format]
+docstring-code-format = true
+docstring-code-line-length = 100
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-v"
+markers = [
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+]
+filterwarnings = [
+    "error",
+]
+
+[tool.coverage.run]
+branch = true
+parallel = true
+source = ["src/"]
+
+[tool.coverage.report]
+precision = 2
+omit = ["src/*/__init__.py"]
+exclude_lines = ["pragma: no cover", "if TYPE_CHECKING", "if __name__ == .__main__.:"]
+
+[tool.coverage.json]
+output = "htmlcov/coverage.json"
+
+[tool.ty.environment]
+python-version = "3.14"
+python = ".venv"
+
+[tool.poe.tasks]
+# Setup
+setup = "uv sync"
+
+# Quality checks
+lint = "ruff check ."
+format = "ruff format ."
+typecheck = "ty check ."
+
+# Testing
+test = "pytest -m 'not slow'"
+test-affected = "pytest --testmon --no-cov"
+test-all = "pytest"
+test-cov = "pytest --cov --cov-report=term-missing --cov-report=html"
+
+# Combined tasks
+check.parallel = ["lint", "typecheck"]
+check.ignore_fail = "return_non_zero"
+fix = ["lint --fix", "format"]
+
+# Documentation
+docs = "zensical serve"
+docs-build = "zensical build -s --clean"
+
+# Pre-commit
+prek = "prek run --all-files"
+
+
+# Template utilities
+check-template = { shell = "copier check-update || true" }
+update-template = { shell = "copier update --trust . --skip-answered --defaults && uv sync --upgrade && prek autoupdate && echo '  ✓ Dependencies upgraded and hook versions updated' && { grep -q 'git add uv.lock CHANGELOG.md' pyproject.toml || echo '  ⚠ WARNING: build_command in pyproject.toml is missing \"git add uv.lock CHANGELOG.md\" — releases will produce stale lockfiles. Add \"git add uv.lock CHANGELOG.md\" to build_command.'; }" }
+
+# Git utilities
+tags = "sh -c 'git fetch --tags && git tag --sort=-version:refname'"
+
+# GitHub utilities
+# actions-up: https://github.com/azat-io/actions-up
+actionsup = "actions-up"
+releases = "gh release list --limit 10"
+runs = "gh run list --limit 10"
+checks = "gh pr checks --watch"
+watch = "gh run watch"
+
+[tool.semantic_release]
+version_toml = ["pyproject.toml:project.version"]
+branch = "main"
+build_command = """
+uv lock --upgrade-package "$PACKAGE_NAME"
+git add uv.lock CHANGELOG.md
+uv build
+"""
+commit_message = "chore(release): {version}"
+tag_format = "{version}"
+allow_zero_version = true
+major_on_zero = false
+
+[tool.semantic_release.changelog]
+mode = "update"
+changelog_file = "CHANGELOG.md"
+
+[tool.semantic_release.commit_parser_options]
+allowed_tags = ["build", "chore", "ci", "deps", "docs", "feat", "fix", "perf", "refactor", "style", "test"]
+minor_tags = ["feat"]
+patch_tags = ["fix", "perf"]
