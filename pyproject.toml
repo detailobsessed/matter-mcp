@@ -209,7 +209,7 @@ typecheck = "ty check ."
 test = "pytest -m 'not slow'"
 test-affected = "pytest --testmon --no-cov"
 test-all = "pytest"
-test-cov = "pytest --cov --cov-report=term-missing --cov-report=html"
+test-cov = "pytest --cov --cov-report=term-missing --cov-report=lcov"
 
 # Combined tasks
 check.parallel = ["lint", "typecheck"]

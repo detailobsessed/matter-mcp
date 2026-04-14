@@ -20,6 +20,7 @@
 .testmondata*
 /.pdm-build/
 /htmlcov/
+/coverage.lcov
 /site/
 
 # cache

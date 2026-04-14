@@ -401,7 +401,7 @@ async def test_update_item_tool(client) -> None:
 
 
 async def test_update_item_tool_no_fields_raises(client) -> None:
-    with pytest.raises(ToolError, match="reading_progress"), _mock_http(_ITEM_RAW):
+    with pytest.raises(ToolError, match="at least one field"), _mock_http(_ITEM_RAW):
         await client.call_tool("update_item", {"item_id": "itm_1"})
 
 
