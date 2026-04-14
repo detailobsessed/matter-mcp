@@ -11,7 +11,10 @@ license-files = ["LICENSE"]
 readme = "README.md"
 requires-python = ">=3.14"
 version = "0.0.0"
-dependencies = []
+dependencies = [
+    "fastmcp>=3.2.3",
+    "httpx>=0.28.1",
+]
 
 [project.urls]
 Homepage = "https://detailobsessed.github.io/matter-mcp"
@@ -37,6 +40,7 @@ ci = [
     "pytest-randomly>=3.15",
     "ty>=0.0.14",
     "poethepoet>=0.41",
+    "pytest-asyncio>=1.3.0",
 ]
 dev = []
 local = [
@@ -165,11 +169,14 @@ docstring-code-line-length = 100
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-v"
+asyncio_mode = "auto"
 markers = [
     "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+    "integration: live API tests — require MATTER_API_TOKEN (run via op run --env-file=.env)",
 ]
 filterwarnings = [
     "error",
+    "ignore::pytest.PytestUnraisableExceptionWarning",
 ]
 
 [tool.coverage.run]
