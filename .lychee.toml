@@ -13,6 +13,11 @@ exclude = [
     '^mailto:',
     # Localhost URLs (e.g. docs preview in CONTRIBUTING.md)
     '^http://localhost',
+    # Self-referential URLs to this repo and its GitHub Pages site.
+    # These don't exist on a fresh scaffold (before `gh repo create` / first CI run / docs deploy)
+    # and they're user-owned anyway -- lychee can't tell us anything we don't already know.
+    '^https?://github\.com/detailobsessed/matter-mcp(/|$)',
+    '^https?://detailobsessed\.github\.io/matter-mcp(/|$)',
 ]
 
 # Exclude local/private addresses

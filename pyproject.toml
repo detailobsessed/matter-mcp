@@ -1,5 +1,9 @@
 [build-system]
-requires = ["uv_build"]
+# uv warns on every `uv sync` / `uv build` if uv_build is unbounded — and a
+# breaking uv_build release would silently break sdist builds in every rendered
+# project. Pin to the current minor series and the next major. Bump the upper
+# bound when uv_build crosses 0.12+ (DOT-589).
+requires = ["uv_build>=0.9,<0.12"]
 build-backend = "uv_build"
 
 [project]
@@ -44,7 +48,7 @@ ci = [
 ]
 dev = []
 local = [
-    "prek>=0.3.8",
+    "prek>=0.4.3",
     "pytest-testmon>=2.2",
 ]
 docs = [
@@ -134,6 +138,11 @@ select = [
 ]
 ignore = [
     "TRY003",  # Overly strict — forces custom exception classes for every error message
+    "TRY300",  # try-consider-else — `try: return x` is often clearer than the else form
+    "EM101",   # Raw string in exception — extracting to a local adds noise without bug-catching value
+    "EM102",   # F-string in exception — same
+    "EM103",   # `.format()` in exception — same
+    "RUF012",  # Mutable class default — false positives with pydantic, sqlalchemy, dataclasses
 ]
 
 [tool.ruff.lint.per-file-ignores]
@@ -175,8 +184,12 @@ markers = [
     "integration: live API tests — require MATTER_API_TOKEN (run via op run --env-file=.env)",
 ]
 filterwarnings = [
+    # Treat warnings as errors so we notice new ones in our own code,
+    # but tolerate deprecation warnings from third-party packages we don't control.
     "error",
     "ignore::pytest.PytestUnraisableExceptionWarning",
+    "default::DeprecationWarning",
+    "default::PendingDeprecationWarning",
 ]
 
 [tool.coverage.run]
@@ -226,7 +239,7 @@ prek = "prek run --all-files"
 
 # Template utilities
 check-template = { shell = "copier check-update || true" }
-update-template = { shell = "copier update --trust . --skip-answered --defaults && uv sync --upgrade && prek autoupdate && echo '  ✓ Dependencies upgraded and hook versions updated' && { grep -q 'git add uv.lock CHANGELOG.md' pyproject.toml || echo '  ⚠ WARNING: build_command in pyproject.toml is missing \"git add uv.lock CHANGELOG.md\" — releases will produce stale lockfiles. Add \"git add uv.lock CHANGELOG.md\" to build_command.'; }" }
+update-template = { shell = "copier update --trust . --skip-answered --defaults --conflict rej && uv sync --upgrade && bash scripts/prek-autoupdate.sh && echo '  ✓ Dependencies upgraded and hook versions updated' && { ls -1 -- **/*.rej *.rej 2>/dev/null | head -1 >/dev/null && echo '  ⚠ Copier produced .rej files — review the diffs, apply manually, and delete the .rej files before committing.' || true; } && { grep -q 'git add uv.lock CHANGELOG.md' pyproject.toml || echo '  ⚠ WARNING: build_command in pyproject.toml is missing \"git add uv.lock CHANGELOG.md\" — releases will produce stale lockfiles. Add \"git add uv.lock CHANGELOG.md\" to build_command.'; }" }
 
 # Git utilities
 tags = "sh -c 'git fetch --tags && git tag --sort=-version:refname'"

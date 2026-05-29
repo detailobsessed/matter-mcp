@@ -1,6 +1,6 @@
-"$schema" = "https://raw.githubusercontent.com/j178/prek/v0.3.9/prek.schema.json"
+#:schema https://www.schemastore.org/prek.json
 default_stages = ["pre-commit"]
-minimum_prek_version = "0.3.9"
+minimum_prek_version = "0.4.3"  # pin to installed version; 0.3.11+ needed for --repo-exclude-tag (scripts/prek-autoupdate.sh)
 # All available: commit-msg, post-checkout, post-commit, post-merge, post-rewrite, pre-commit, pre-merge-commit, pre-push, pre-rebase, prepare-commit-msg
 default_install_hook_types = ["commit-msg", "post-checkout", "post-merge", "post-rewrite", "pre-commit", "pre-push"]
 
@@ -13,7 +13,7 @@ hooks = [
   { id = "check-toml", priority = 0 },
   { id = "check-json", priority = 0 },
   { id = "check-added-large-files", priority = 0 },
-  { id = "check-merge-conflict", priority = 0 },
+  { id = "check-merge-conflict", args = ["--assume-in-merge"], priority = 0 },  # --assume-in-merge catches markers from `copier update --conflict inline` (no .git/MERGE_MSG)
   { id = "check-case-conflict", priority = 0 },
   { id = "check-symlinks", priority = 0 },
   { id = "check-executables-have-shebangs", priority = 0 },
@@ -72,20 +72,20 @@ hooks = [{ id = "markdownlint", args = ["--fix", "--ignore", "CHANGELOG.md"], pr
 
 [[repos]]
 repo = "https://github.com/lycheeverse/lychee"
-rev = "lychee-v0.23.0"  # prek autoupdate will fill this
+rev = "lychee-v0.24.2"  # use scripts/prek-autoupdate.sh, not bare `prek autoupdate` (DOT-492)
 hooks = [{ id = "lychee", args = ["--config", ".lychee.toml"], priority = 1, types_or = ["markdown", "html", "rst", "yaml"] }]
 
 [[repos]]
 repo = "local"
 
+# Block commits containing .rej files produced by `copier update --conflict rej` (DOT-542).
+# https://copier.readthedocs.io/en/stable/updating/#tips-and-tricks
 [[repos.hooks]]
-id = "no-commit-to-main"
-name = "prevent pushes to main"
-entry = "bash -c 'test \"$(git rev-parse --abbrev-ref HEAD)\" != main || { echo Direct pushes to main not allowed. Use a branch + PR. && exit 1; }'"
-language = "system"
-always_run = true
-pass_filenames = false
-stages = ["pre-push"]
+id = "no-copier-rej-files"
+name = "block copier .rej files"
+entry = "Found copier update rejection files (.rej). Review the diff, apply changes manually, delete the .rej file, then commit."
+language = "fail"
+files = "\\.rej$"
 priority = 0
 
 [[repos.hooks]]
@@ -111,7 +111,7 @@ priority = 1
 [[repos.hooks]]
 id = "pytest-cov"
 name = "pytest with coverage"
-entry = "uv run pytest -q --cov --cov-fail-under=90 --cov-report=term-missing:skip-covered"
+entry = "uv run pytest -q --cov --cov-fail-under=95 --cov-report=term-missing:skip-covered"
 language = "system"
 types = ["python"]
 pass_filenames = false
