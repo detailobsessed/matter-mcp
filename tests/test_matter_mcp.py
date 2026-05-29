@@ -9,7 +9,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 from fastmcp.exceptions import ToolError
 
-from matter_mcp.client import _BASE_URL, _request, api_delete, get_token
+from matter_mcp.client import _BASE_URL, _request, api_delete, api_get, api_patch, api_post, get_token
 from matter_mcp.server import _shape_item, mcp
 
 # ---------------------------------------------------------------------------
@@ -518,6 +518,147 @@ async def test_list_reading_sessions_tool(client) -> None:
     assert not result.is_error
     assert result.data["results"][0]["minutes_read"] == pytest.approx(5.0)
     assert result.data["total_minutes_read"] == pytest.approx(5.0)
+
+
+# ---------------------------------------------------------------------------
+# CLI entrypoint
+# ---------------------------------------------------------------------------
+
+
+def test_cli_main_runs_server() -> None:
+    """main() should start the MCP server over its default transport."""
+    from matter_mcp.cli import main
+
+    with patch("matter_mcp.cli.mcp.run") as mock_run:
+        main()
+    mock_run.assert_called_once_with()
+
+
+# ---------------------------------------------------------------------------
+# Client — empty-response guards on non-DELETE verbs
+# ---------------------------------------------------------------------------
+
+
+async def test_api_get_raises_on_empty_response() -> None:
+    with pytest.raises(ToolError, match="Unexpected empty response from GET"), _mock_http(None, status=204):
+        await api_get("/me")
+
+
+async def test_api_post_raises_on_empty_response() -> None:
+    with pytest.raises(ToolError, match="Unexpected empty response from POST"), _mock_http(None, status=204):
+        await api_post("/items", body={"url": "https://example.com"})
+
+
+async def test_api_patch_raises_on_empty_response() -> None:
+    with pytest.raises(ToolError, match="Unexpected empty response from PATCH"), _mock_http(None, status=204):
+        await api_patch("/items/itm_1", body={"status": "archive"})
+
+
+# ---------------------------------------------------------------------------
+# Pagination + optional-parameter branches
+# ---------------------------------------------------------------------------
+
+
+async def test_paginated_emits_cursor_next_step_when_more(client) -> None:
+    """When the API reports more pages, results carry a cursor follow-up hint."""
+    page = {"results": [_ITEM_RAW], "has_more": True, "next_cursor": "cur_2"}
+    with _mock_http(page):
+        result = await client.call_tool("list_items", {"limit": 1})
+    assert not result.is_error
+    assert any("cur_2" in s for s in result.data["next_steps"])
+
+
+async def test_list_items_passes_all_optional_filters(client) -> None:
+    """Exercise every optional param branch in list_items."""
+    with _mock_http(_LIST_ITEMS) as http:
+        result = await client.call_tool(
+            "list_items",
+            {
+                "status": "queue",
+                "content_types": ["article"],
+                "tag_ids": ["tag_1"],
+                "is_favorite": True,
+                "updated_since": "2026-01-01T00:00:00Z",
+                "cursor": "cur_1",
+                "limit": 1,
+            },
+        )
+    assert not result.is_error
+    sent_params = http.request.call_args.kwargs["params"]
+    assert sent_params["status"] == "queue"
+    assert sent_params["content_type"] == "article"
+    assert sent_params["tag"] == "tag_1"
+    assert sent_params["is_favorite"] is True
+    assert sent_params["updated_since"] == "2026-01-01T00:00:00Z"
+    assert sent_params["cursor"] == "cur_1"
+
+
+async def test_get_item_tool_processing_status(client) -> None:
+    """A still-processing item returns the retry note and follow-up step."""
+    processing = {**_ITEM_RAW, "processing_status": "processing"}
+    with _mock_http(processing):
+        result = await client.call_tool("get_item", {"item_id": "itm_1"})
+    assert not result.is_error
+    assert "in progress" in result.data["note"]
+    assert any("processing completes" in s for s in result.data["next_steps"])
+
+
+async def test_update_item_tool_favorite_and_progress(client) -> None:
+    """update_item with is_favorite and reading_progress builds the full body."""
+    updated = {**_ITEM_RAW, "is_favorite": True, "reading_progress": 0.5}
+    with _mock_http(updated) as http:
+        result = await client.call_tool(
+            "update_item",
+            {"item_id": "itm_1", "is_favorite": True, "reading_progress": 0.5},
+        )
+    assert not result.is_error
+    sent_body = http.request.call_args.kwargs["json"]
+    assert sent_body["is_favorite"] is True
+    assert sent_body["reading_progress"] == pytest.approx(0.5)
+
+
+async def test_list_annotations_tool_with_cursor(client) -> None:
+    with _mock_http(_LIST_ANNOTATIONS) as http:
+        result = await client.call_tool("list_annotations", {"item_id": "itm_1", "cursor": "cur_1"})
+    assert not result.is_error
+    assert http.request.call_args.kwargs["params"]["cursor"] == "cur_1"
+
+
+async def test_list_tags_tool_with_cursor(client) -> None:
+    with _mock_http(_LIST_TAGS) as http:
+        result = await client.call_tool("list_tags", {"cursor": "cur_1"})
+    assert not result.is_error
+    assert http.request.call_args.kwargs["params"]["cursor"] == "cur_1"
+
+
+async def test_search_tool_with_status_and_cursor(client) -> None:
+    with _mock_http(_SEARCH_RAW) as http:
+        result = await client.call_tool("search", {"query": "ai", "status": "queue", "cursor": "cur_1"})
+    assert not result.is_error
+    sent_params = http.request.call_args.kwargs["params"]
+    assert sent_params["status"] == "queue"
+    assert sent_params["cursor"] == "cur_1"
+
+
+async def test_list_reading_sessions_tool_with_filters(client) -> None:
+    with _mock_http(_LIST_SESSIONS) as http:
+        result = await client.call_tool(
+            "list_reading_sessions",
+            {"since": "2026-01-01T00:00:00Z", "cursor": "cur_1"},
+        )
+    assert not result.is_error
+    sent_params = http.request.call_args.kwargs["params"]
+    assert sent_params["since"] == "2026-01-01T00:00:00Z"
+    assert sent_params["cursor"] == "cur_1"
+
+
+async def test_list_reading_sessions_tool_empty(client) -> None:
+    """With no sessions, no aggregate total is emitted."""
+    empty = {"results": [], "has_more": False, "next_cursor": None}
+    with _mock_http(empty):
+        result = await client.call_tool("list_reading_sessions", {})
+    assert not result.is_error
+    assert "total_minutes_read" not in result.data
 
 
 async def test_tool_annotations_on_readonly_tool() -> None:
