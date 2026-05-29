@@ -23,6 +23,8 @@ Ask your AI assistant things like:
 
 ## Installation
 
+`matter-mcp` isn't published to PyPI — `uvx` installs it straight from this GitHub repo via `--from git+…`. To pin a version, append a tag or branch, e.g. `git+https://github.com/detailobsessed/matter-mcp.git@v0.1.0`.
+
 ### Claude Desktop
 
 Add to `~/Library/Application Support/Claude/claude_desktop_config.json`:
@@ -32,7 +34,7 @@ Add to `~/Library/Application Support/Claude/claude_desktop_config.json`:
   "mcpServers": {
     "matter": {
       "command": "uvx",
-      "args": ["matter-mcp"],
+      "args": ["--from", "git+https://github.com/detailobsessed/matter-mcp.git", "matter-mcp"],
       "env": {
         "MATTER_API_TOKEN": "mat_your_token_here"
       }
@@ -47,7 +49,7 @@ Add to `~/Library/Application Support/Claude/claude_desktop_config.json`:
 {
   "matter": {
     "command": "uvx",
-    "args": ["matter-mcp"],
+    "args": ["--from", "git+https://github.com/detailobsessed/matter-mcp.git", "matter-mcp"],
     "env": {
       "MATTER_API_TOKEN": "mat_your_token_here"
     }
@@ -58,7 +60,7 @@ Add to `~/Library/Application Support/Claude/claude_desktop_config.json`:
 ### Manual / other clients
 
 ```bash
-MATTER_API_TOKEN=mat_your_token_here uvx matter-mcp
+MATTER_API_TOKEN=mat_your_token_here uvx --from git+https://github.com/detailobsessed/matter-mcp.git matter-mcp
 ```
 
 ## Tools
