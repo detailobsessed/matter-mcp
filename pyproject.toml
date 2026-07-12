@@ -44,7 +44,7 @@ ci = [
 ]
 dev = []
 local = [
-    "prek>=0.3.8",
+    "prek>=0.4.3",
     "pytest-testmon>=2.2",
 ]
 docs = [
